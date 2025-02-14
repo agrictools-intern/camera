@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:naming_camera/features/camera/view/camera_view.dart';
+import '../../full_screen/view/full_screen_view.dart';
 import '../../home/view/home_view.dart';
 
 class PreviewPage extends StatefulWidget {
@@ -55,19 +56,29 @@ class _PreviewPageState extends State<PreviewPage> {
   }
 
   Future<bool> _onWillPop() async {
-    DateTime now = DateTime.now();
-    if (lastBackPressTime == null || now.difference(lastBackPressTime!) > const Duration(seconds: 2)) {
-      lastBackPressTime = now;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Press back again to exit"), duration: Duration(seconds: 2)),
+    bool confirmExit = await _showExitConfirmationDialog();
+    if (confirmExit) {
+      for (String path in imagePaths) {
+        File file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+
+      setState(() {
+        imagePaths.clear();
+      });
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
       );
-      return false;
     }
-    exit(0);
+    return false;
   }
 
   Future<void> _saveImages() async {
-    final downloadDir = Directory('/storage/emulated/0/Download/Agrictools');
+    final downloadDir = Directory('/storage/emulated/0/Download/AgricTools');
     if (!await downloadDir.exists()) {
       await downloadDir.create(recursive: true);
     }
@@ -81,7 +92,6 @@ class _PreviewPageState extends State<PreviewPage> {
 
       String newImagePath = '/storage/emulated/0/Download/Agrictools/${widget.agtCode}_${index + 1}.jpg';
       await imageFile.copy(newImagePath);
-
       await imageFile.delete();
     }
 
@@ -101,6 +111,33 @@ class _PreviewPageState extends State<PreviewPage> {
     );
   }
 
+  Future<bool> _showExitConfirmationDialog() async {
+    return await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text("Confirm Exit"),
+              content: const Text("You will lose all the photos. Do you want to proceed?"),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                  child: const Text("No"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                  child: const Text("Yes"),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -111,10 +148,29 @@ class _PreviewPageState extends State<PreviewPage> {
           title: Text("Preview Image - ${widget.agtCode}"),
           actions: [
             TextButton(
-              onPressed: _saveImages,
+              onPressed: () async {
+                bool confirmExit = await _showExitConfirmationDialog();
+                if (confirmExit) {
+                  for (String path in imagePaths) {
+                    File file = File(path);
+                    if (await file.exists()) {
+                      await file.delete();
+                    }
+                  }
+
+                  setState(() {
+                    imagePaths.clear();
+                  });
+
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => HomePage()),
+                  );
+                }
+              },
               child: const Text(
-                "Save",
-                style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                "Home",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
               ),
             ),
           ],
@@ -140,47 +196,57 @@ class _PreviewPageState extends State<PreviewPage> {
 
                     String imageAgtCode = "${widget.agtCode}_${index + 1}";
 
-                    return Stack(
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 1.0,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.file(
-                              imageFile,
-                              fit: BoxFit.cover,
-                            ),
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FullScreenImageView(imagePath: imagePaths[index]),
                           ),
-                        ),
-                        Positioned(
-                          right: 5,
-                          top: 5,
-                          child: GestureDetector(
-                            onTap: () => _removeImage(index),
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
+                        );
+                      },
+                      child: Stack(
+                        children: [
+                          AspectRatio(
+                            aspectRatio: 1.0,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                imageFile,
+                                fit: BoxFit.cover,
                               ),
-                              padding: const EdgeInsets.all(5),
-                              child: const Icon(Icons.close, color: Colors.white, size: 18),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          bottom: 5,
-                          left: 5,
-                          child: Text(
-                            imageAgtCode,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              backgroundColor: Colors.black54,
+                          Positioned(
+                            right: 5,
+                            top: 5,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(5),
+                                child: const Icon(Icons.close, color: Colors.white, size: 18),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          Positioned(
+                            bottom: 5,
+                            left: 5,
+                            child: Text(
+                              imageAgtCode,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                backgroundColor: Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -205,44 +271,32 @@ class _PreviewPageState extends State<PreviewPage> {
                           );
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: imagePaths.length >= maxImages ? Colors.grey : Colors.blue,
+                    backgroundColor: imagePaths.length >= maxImages ? Colors.grey : Colors.green,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   child: const Text(
-                    "Click Photos",
+                    "Click More",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    for (String path in imagePaths) {
-                      File file = File(path);
-                      if (await file.exists()) {
-                        await file.delete();
-                      }
-                    }
-
-                    setState(() {
-                      imagePaths.clear();
-                    });
-
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => HomePage()),
-                    );
-                  },
+                child: TextButton(
+                  onPressed: imagePaths.isEmpty ? null : _saveImages,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: Colors.redAccent,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text(
-                    "Home",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  child: Text(
+                    "Save",
+                    style: TextStyle(
+                      color: imagePaths.isEmpty ? Colors.grey : Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

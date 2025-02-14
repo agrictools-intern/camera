@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:naming_camera/features/camera/view/camera_view.dart';
@@ -29,12 +30,47 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.dispose();
   }
 
-  void _validateInput(String agtCode) {
-    final pattern = RegExp(r'^(AGT|agt)\d{4,5}$');
+  void _validateInput(String agtCode) async {
+    final pattern = RegExp(r'^agt\d{4,5}$', caseSensitive: false);
+
     bool isValid = pattern.hasMatch(agtCode);
 
+    if (isValid) {
+      final hasMatchingFiles = await _doesAgtCodeExist(agtCode.toUpperCase());
+      if (hasMatchingFiles) {
+        ref.read(errorTextProvider.notifier).state = 'AGT Code is already there!';
+      } else {
+        ref.read(errorTextProvider.notifier).state = null;
+      }
+    } else {
+      ref.read(errorTextProvider.notifier).state = 'Invalid Format! Use AGT1234 or AGT12345 format';
+    }
+
     ref.read(textFormFieldProvider.notifier).updateTextFormFieldButton(agtCode);
-    ref.read(errorTextProvider.notifier).state = isValid ? null : 'Invalid Format! Use AGT1234 or AGT12345 format';
+  }
+
+  Future<bool> _doesAgtCodeExist(String agtCode) async {
+    final agricToolsDirectory = Directory('/storage/emulated/0/Download/AgricTools');
+
+    if (!await agricToolsDirectory.exists()) {
+      return false;
+    }
+
+    List<FileSystemEntity> files = agricToolsDirectory.listSync();
+    Set<String> uniqueAgtCodes = {};
+
+    for (var file in files) {
+      if (file is File) {
+        String fileName = file.uri.pathSegments.last;
+
+        if (fileName.contains('_')) {
+          String prefix = fileName.split('_').first;
+          uniqueAgtCodes.add(prefix);
+        }
+      }
+    }
+
+    return uniqueAgtCodes.contains(agtCode);
   }
 
   @override
@@ -75,7 +111,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Text(
-                                  "Enter the ATH Code",
+                                  "Enter the AGT Code",
                                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
@@ -99,7 +135,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   ),
                                   onPressed: isButtonEnabled && errorText == null
                                       ? () {
-                                          print("Capturing the images");
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(

@@ -3,21 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../preview/view/preview_view.dart';
 
-class CameraView extends StatefulWidget {
+class CameraView extends StatelessWidget {
   final String agtCode;
   const CameraView({super.key, required this.agtCode});
 
-  @override
-  _CameraViewState createState() => _CameraViewState();
-}
-
-class _CameraViewState extends State<CameraView> {
-  @override
-  void initState() {
-    super.initState();
-    _captureImage();
-  }
-
+  /// Save the captured image to the Downloads folder
   Future<String> _saveImageToFolder(String filePath) async {
     try {
       final File originalFile = File(filePath);
@@ -30,6 +20,7 @@ class _CameraViewState extends State<CameraView> {
 
       final String newFilePath = '${agricToolsDir.path}/Captured_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
+      // Save the image as it is without modification
       final savedFile = await originalFile.copy(newFilePath);
 
       return savedFile.path;
@@ -38,33 +29,27 @@ class _CameraViewState extends State<CameraView> {
     }
   }
 
-  Future<void> _captureImage() async {
+  /// Function to capture image using image_picker
+  Future<void> _captureImage(BuildContext context) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
       source: ImageSource.camera,
       preferredCameraDevice: CameraDevice.rear,
-      imageQuality: 100,
-      maxWidth: 1080,
-      maxHeight: 1080,
+      imageQuality: 100, // Best quality
     );
 
     if (image != null) {
       String newFilePath = await _saveImageToFolder(image.path);
 
-      if (!mounted) return;
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => PreviewPage(
             imagePath: newFilePath,
-            agtCode: widget.agtCode,
+            agtCode: agtCode,
           ),
         ),
       );
-    } else {
-      if (mounted) {
-        Navigator.pop(context);
-      }
     }
   }
 
@@ -78,10 +63,15 @@ class _CameraViewState extends State<CameraView> {
             Navigator.pop(context);
           },
         ),
-        title: Text("Camera - ${widget.agtCode}"),
+        title: Text("Camera - $agtCode"),
       ),
-      body: const Center(
-        child: CircularProgressIndicator(),
+      body: SafeArea(
+        child: Center(
+          child: ElevatedButton(
+            onPressed: () => _captureImage(context),
+            child: const Text("Capture Image"),
+          ),
+        ),
       ),
     );
   }

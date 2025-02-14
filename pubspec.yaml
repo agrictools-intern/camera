@@ -38,6 +38,9 @@ dependencies:
   camerawesome: ^2.1.0
   open_file: ^3.5.10
   shared_preferences: ^2.5.1
+  path_provider: ^2.1.5
+  permission_handler: ^11.3.1
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
