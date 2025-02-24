@@ -135,11 +135,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   ),
                                   onPressed: isButtonEnabled && errorText == null
                                       ? () {
+                                          String formattedAgtCode = _agtController.text.toUpperCase();
+                                          if (RegExp(r'^AGT\d{4}$').hasMatch(formattedAgtCode)) {
+                                            formattedAgtCode = 'AGT0${formattedAgtCode.substring(3)}';
+                                          }
+
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                              builder: (context) =>
-                                                  CameraView(agtCode: _agtController.text.toUpperCase()),
+                                              builder: (context) => CameraView(agtCode: formattedAgtCode),
                                             ),
                                           );
                                         }

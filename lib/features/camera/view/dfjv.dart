@@ -7,7 +7,6 @@ class CameraView extends StatelessWidget {
   final String agtCode;
   const CameraView({super.key, required this.agtCode});
 
-  /// Save the captured image to the Downloads folder
   Future<String> _saveImageToFolder(String filePath) async {
     try {
       final File originalFile = File(filePath);
@@ -20,7 +19,6 @@ class CameraView extends StatelessWidget {
 
       final String newFilePath = '${agricToolsDir.path}/Captured_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // Save the image as it is without modification
       final savedFile = await originalFile.copy(newFilePath);
 
       return savedFile.path;
@@ -29,13 +27,12 @@ class CameraView extends StatelessWidget {
     }
   }
 
-  /// Function to capture image using image_picker
   Future<void> _captureImage(BuildContext context) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
       source: ImageSource.camera,
       preferredCameraDevice: CameraDevice.rear,
-      imageQuality: 100, // Best quality
+      imageQuality: 100,
     );
 
     if (image != null) {
